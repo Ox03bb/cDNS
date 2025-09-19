@@ -12,8 +12,15 @@ include_directories(${PROJECT_SOURCE_DIR}/includes)
 # Source files
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
 
+# Add tomlc99 sources
+file(GLOB TOMLC99_SOURCES ${PROJECT_SOURCE_DIR}/vendor/tomlc99/*.c)
+
+# Add tomlc99 include directory
+include_directories(${PROJECT_SOURCE_DIR}/vendor/tomlc99)
+
+
 # Add executable
-add_executable(cDNS ${SOURCES})
+add_executable(cDNS ${SOURCES} ${TOMLC99_SOURCES})
 
 # Custom build and format scripts (hints)
 add_custom_target(build_script

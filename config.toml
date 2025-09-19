@@ -1,0 +1,14 @@
+[general]
+project_name = "cDNS"
+version = "0.1.0"
+author = "ox03bb"
+description = "A simple DNS server written in C"
+
+[server]
+host = "0.0.0.0"
+port = 53
+protocol = "udp"
+log_level = "info"
+ttl = 100
+enable_cache = true
+
