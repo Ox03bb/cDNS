@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv) {
 
-	printf("Hello, cDNS!\n");
+    printf("Hello, cDNS!\n");
 
-	return 0;
+    return 0;
 }
