@@ -39,7 +39,7 @@ uint8_t parse_domain_name(const unsigned char *buffer, DomainName *dname) {
 	}
 
 	dname->len_domain = buffer[cur];
-	memcpy(dname->domain, buffer[cur], dname->len_domain);
+	memcpy(dname->domain, &buffer[cur], dname->len_domain);
 
 	cur += 1 + dname->len_domain;
 	
@@ -48,7 +48,7 @@ uint8_t parse_domain_name(const unsigned char *buffer, DomainName *dname) {
 	}
 	
 	dname->len_tld = buffer[cur];
-	memcpy(dname->tld, buffer[cur], dname->len_tld);
+	memcpy(dname->tld, &buffer[cur], dname->len_tld);
 
 	cur += 1 + dname->len_tld;
 
