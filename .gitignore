@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+.vscode/
+build/
+
+ig_*

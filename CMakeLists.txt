@@ -7,7 +7,10 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Include directories
-include_directories(${PROJECT_SOURCE_DIR}/includes)
+include_directories(
+	${PROJECT_SOURCE_DIR}/includes
+	${PROJECT_SOURCE_DIR}/vendor 
+)
 
 # Source files
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)

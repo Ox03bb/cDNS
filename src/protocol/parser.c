@@ -3,62 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 
-typedef struct{
-	char subdomain[64];
-	char domain[64];
-	char tld[64]; // top level domain name
+#include "parser.h"
 
-	uint16_t len_subdomain;
-	uint16_t len_domain;
-	uint16_t len_tld;
-} DomainName;
-typedef struct {
-	uint16_t id;
-	uint16_t qr :1;
-	uint16_t opcode :4;
-	uint16_t aa :1;
-	uint16_t tc :1;
-	uint16_t rd :1;
-	uint16_t ra :1;
-	uint16_t z :3;
-	uint16_t rcode :4;
-	uint16_t qdcount;
-	uint16_t ancount;
-	uint16_t nscount;
-	uint16_t arcount;
-} DNSHeader;
-
-typedef struct {
-	DomainName *qname;
-	uint16_t qtype;
-	uint16_t qclass;
-} DNSQuestion;
-
-typedef struct {
-	DomainName *name;
-	uint16_t type;
-	uint16_t class;
-	uint32_t ttl;
-	uint16_t rdlength;
-	unsigned char *rdata;
-} DNSAnswer;
-
-
-typedef struct {
-	DNSHeader header;
-	DNSQuestion *questions;
-} DNSRequest;
-
-typedef struct {
-	DNSHeader header;
-	DNSQuestion *questions;
-	DNSAnswer *answers;
-	DNSAnswer *authorities;
-	DNSAnswer *additionals;
-} DNSResponse;
-
-
-void parse_dns_header(const unsigned char *buffer, DNSHeader *header) {
+uint8_t parse_dns_header(const unsigned char *buffer, DNSHeader *header) {
 	header->id = (buffer[0] << 8) | buffer[1];
 	header->qr = (buffer[2] >> 7) & 0x01;
 	header->opcode = (buffer[2] >> 3) & 0x0F;
@@ -72,15 +19,14 @@ void parse_dns_header(const unsigned char *buffer, DNSHeader *header) {
 	header->ancount = (buffer[6] << 8) | buffer[7];
 	header->nscount = (buffer[8] << 8) | buffer[9];
 	header->arcount = (buffer[10] << 8) | buffer[11];
+	return 0;
 }
 
-void parse_dns_question(const unsigned char *buffer, DNSQuestion *question){
-	DomainName *dname = malloc(sizeof(DomainName));
-
+uint8_t parse_domain_name(const unsigned char *buffer, DomainName *dname) {
 	uint16_t cur = 0;
 
 	if (buffer[cur] <= 63){
-		return;
+		return -1;
 	}
 
 	dname->len_subdomain = buffer[0];
@@ -89,24 +35,34 @@ void parse_dns_question(const unsigned char *buffer, DNSQuestion *question){
 	cur += 1 + dname->len_subdomain;
 	
 	if (! buffer[cur] <= 63){
-		return;
+		return -1;
 	}
 
 	dname->len_domain = buffer[cur];
 	memcpy(dname->domain, buffer[cur], dname->len_domain);
 
-
 	cur += 1 + dname->len_domain;
 	
 	if (! buffer[cur] <= 63){
-		return;
+		return -1;
 	}
-
-	dname->len_tld = buffer[cur];
-	memcpy(dname->domain, buffer[cur], dname->len_tld);
 	
+	dname->len_tld = buffer[cur];
+	memcpy(dname->tld, buffer[cur], dname->len_tld);
+
 	cur += 1 + dname->len_tld;
 
+	return cur;
+}
+
+uint8_t parse_dns_question(const unsigned char *buffer, DNSQuestion *question){
+	DomainName *dname = malloc(sizeof(DomainName));
+	int cur = parse_domain_name(buffer, dname);
+	
+	if (cur == -1) {
+		free(dname);
+		return -1;
+	}
 
 	question->qclass = (buffer[cur] << 8) | buffer[cur + 1];
 	cur += 2;
@@ -115,7 +71,64 @@ void parse_dns_question(const unsigned char *buffer, DNSQuestion *question){
 	cur += 2;
 
 	question->qname = dname;
+
+	return cur;
 }	
 
+uint8_t parse_dns_answer(const unsigned char *buffer, DNSAnswer *answer){
+	DomainName *dname = malloc(sizeof(DomainName));
+	int cur = parse_domain_name(buffer, dname);
+	
+	if (cur == -1) {
+		free(dname);
+		return -1;
+	}
 
+	answer->class = (buffer[cur] << 8) | buffer[cur + 1];
+	cur += 2;
 
+	answer->type = (buffer[cur] << 8) | buffer[cur + 1];
+	cur += 2;
+
+	answer->ttl = (buffer[cur] << 24) | (buffer[cur + 1] << 16) | (buffer[cur + 2] << 8) | buffer[cur + 3];
+	cur += 4;
+
+	answer->rdlength = (buffer[cur] << 8) | buffer[cur + 1];
+	cur += 2;
+
+	answer->rdata = malloc(answer->rdlength);
+	memcpy(answer->rdata, &buffer[cur], answer->rdlength);
+	cur += answer->rdlength;
+
+	answer->name = dname;
+
+	return cur;
+}
+
+uint8_t parse_dns_request(const unsigned char *buffer, DNSRequest *request) {
+	int cur = 0;
+	
+	cur += parse_dns_header(buffer, &request->header);
+	if (cur == -1) {
+		return -1;
+	}
+
+	request->questions = malloc(request->header.qdcount * sizeof(DNSQuestion));
+	if (request->questions == NULL) {
+		return -1;
+	}
+
+	for (int i = 0; i < request->header.qdcount; i++) {
+		int res = parse_dns_question(&buffer[cur], &request->questions[i]);
+		if (res == -1) {
+			for (int j = 0; j < i; j++) {
+				free(request->questions[j].qname);
+			}
+			free(request->questions);
+			return -1;
+		}
+		cur += res;
+	}
+
+	return cur;
+}
