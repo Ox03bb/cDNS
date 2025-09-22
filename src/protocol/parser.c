@@ -5,7 +5,7 @@
 
 #include "parser.h"
 
-uint8_t parse_dns_header(const unsigned char *buffer, DNSHeader *header) {
+int parse_dns_header(const char *buffer, DNSHeader *header) {
 	header->id = (buffer[0] << 8) | buffer[1];
 	header->qr = (buffer[2] >> 7) & 0x01;
 	header->opcode = (buffer[2] >> 3) & 0x0F;
@@ -19,45 +19,68 @@ uint8_t parse_dns_header(const unsigned char *buffer, DNSHeader *header) {
 	header->ancount = (buffer[6] << 8) | buffer[7];
 	header->nscount = (buffer[8] << 8) | buffer[9];
 	header->arcount = (buffer[10] << 8) | buffer[11];
-	return 0;
+	return 12;
 }
 
-uint8_t parse_domain_name(const unsigned char *buffer, DomainName *dname) {
-	uint16_t cur = 0;
+int parse_domain_name(const char *buffer, int offset, DomainName *dname) {
+    int cur = offset;
+    // Parse subdomain
+    if ((char)buffer[cur] >= 63) {
+        printf("Invalid subdomain length\n");
+        return -1;
+    }
+    dname->len_subdomain = (int8_t)buffer[cur];
+    if (dname->len_subdomain == 0) {
+        dname->subdomain = strdup("");
+    } else {
+        char temp[64];
+        if (dname->len_subdomain > 63) return -1;
+        memcpy(temp, buffer + cur + 1, dname->len_subdomain);
+        temp[dname->len_subdomain] = '\0';
+        dname->subdomain = strdup(temp);
+    }
+    cur += 1 + dname->len_subdomain;
 
-	if (buffer[cur] <= 63){
-		return -1;
-	}
+    // Parse domain
+    if ((char)buffer[cur] >= 63) {
+        printf("Invalid domain length\n");
+        return -1;
+    }
+    dname->len_domain = (int8_t)buffer[cur];
+    if (dname->len_domain == 0) {
+        dname->domain = strdup("");
+    } else {
+        char temp[64];
+        if (dname->len_domain > 63) return -1;
+        memcpy(temp, buffer + cur + 1, dname->len_domain);
+        temp[dname->len_domain] = '\0';
+        dname->domain = strdup(temp);
+    }
 
-	dname->len_subdomain = buffer[0];
-	memcpy(dname->subdomain, &buffer[1], dname->len_subdomain);
+    cur += 1 + dname->len_domain;
 
-	cur += 1 + dname->len_subdomain;
-	
-	if (! buffer[cur] <= 63){
-		return -1;
-	}
+    if ((char)buffer[cur] >= 63) {
+        printf("Invalid tld length\n");
+        return -1;
+    }
+    dname->len_tld = (int8_t)buffer[cur];
+    if (dname->len_tld == 0) {
+        dname->tld = strdup("");
+    } else {
+        char temp[64];
+        if (dname->len_tld > 63) return -1;
+        memcpy(temp, buffer + cur + 1, dname->len_tld);
+        temp[dname->len_tld] = '\0';
+        dname->tld = strdup(temp);
+    }
+    cur += 1 + dname->len_tld;
 
-	dname->len_domain = buffer[cur];
-	memcpy(dname->domain, &buffer[cur], dname->len_domain);
-
-	cur += 1 + dname->len_domain;
-	
-	if (! buffer[cur] <= 63){
-		return -1;
-	}
-	
-	dname->len_tld = buffer[cur];
-	memcpy(dname->tld, &buffer[cur], dname->len_tld);
-
-	cur += 1 + dname->len_tld;
-
-	return cur;
+    return cur;
 }
 
-uint8_t parse_dns_question(const unsigned char *buffer, DNSQuestion *question){
+int parse_dns_question(const char *buffer,int offset, DNSQuestion *question){
 	DomainName *dname = malloc(sizeof(DomainName));
-	int cur = parse_domain_name(buffer, dname);
+	int cur = parse_domain_name(buffer,offset , dname);
 	
 	if (cur == -1) {
 		free(dname);
@@ -75,9 +98,9 @@ uint8_t parse_dns_question(const unsigned char *buffer, DNSQuestion *question){
 	return cur;
 }	
 
-uint8_t parse_dns_answer(const unsigned char *buffer, DNSAnswer *answer){
+int parse_dns_answer(const char *buffer, DNSAnswer *answer){
 	DomainName *dname = malloc(sizeof(DomainName));
-	int cur = parse_domain_name(buffer, dname);
+	int cur = parse_domain_name(buffer,0 , dname);
 	
 	if (cur == -1) {
 		free(dname);
@@ -105,7 +128,7 @@ uint8_t parse_dns_answer(const unsigned char *buffer, DNSAnswer *answer){
 	return cur;
 }
 
-uint8_t parse_dns_request(const unsigned char *buffer, DNSRequest *request) {
+int parse_dns_request(const char *buffer, DNSRequest *request) {
 	int cur = 0;
 	
 	cur += parse_dns_header(buffer, &request->header);
@@ -113,13 +136,15 @@ uint8_t parse_dns_request(const unsigned char *buffer, DNSRequest *request) {
 		return -1;
 	}
 
+	
 	request->questions = malloc(request->header.qdcount * sizeof(DNSQuestion));
 	if (request->questions == NULL) {
 		return -1;
 	}
 
+
 	for (int i = 0; i < request->header.qdcount; i++) {
-		int res = parse_dns_question(&buffer[cur], &request->questions[i]);
+		int res = parse_dns_question(buffer,cur, &request->questions[i]);
 		if (res == -1) {
 			for (int j = 0; j < i; j++) {
 				free(request->questions[j].qname);

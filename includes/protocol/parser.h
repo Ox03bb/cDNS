@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 typedef struct {
-    char subdomain[64];
-    char domain[64];
-    char tld[64]; // top level domain name
+    char* subdomain;
+    char* domain;
+    char* tld; // top level domain name
 
     uint16_t len_subdomain;
     uint16_t len_domain;
@@ -41,7 +41,7 @@ typedef struct {
     uint16_t class;
     uint32_t ttl;
     uint16_t rdlength;
-    unsigned char *rdata;
+    char *rdata;
 } DNSAnswer;
 
 typedef struct {
@@ -57,8 +57,8 @@ typedef struct {
     DNSAnswer *additionals;
 } DNSResponse;
 
-uint8_t parse_dns_header(const unsigned char *buffer, DNSHeader *header);
-uint8_t parse_dns_answer(const unsigned char *buffer, DNSAnswer *answer);
-uint8_t parse_dns_request(const unsigned char *buffer, DNSRequest *request);
+int parse_dns_header(const char *buffer, DNSHeader *header);
+int parse_dns_answer(const char *buffer, DNSAnswer *answer);
+int parse_dns_request(const char *buffer, DNSRequest *request);
 
 #endif // PARSER_H
