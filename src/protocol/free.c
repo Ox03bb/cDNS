@@ -52,33 +52,33 @@ void free_dns_request(DNSRequest *request) {
 	}
 }
 
-void free_dns_response(DNSResponse *response) {
-	if (response) {
-		free_dns_header(&response->header);
-		if (response->questions) {
-			for (uint16_t i = 0; i < response->header.qdcount; i++) {
-				free_dns_question(&response->questions[i]);
+void free_dns_responce(DNSResponce *responce) {
+	if (responce) {
+		free_dns_header(&responce->header);
+		if (responce->questions) {
+			for (uint16_t i = 0; i < responce->header.qdcount; i++) {
+				free_dns_question(&responce->questions[i]);
 			}
-			free(response->questions);
+			free(responce->questions);
 		}
-		if (response->answers) {
-			for (uint16_t i = 0; i < response->header.ancount; i++) {
-				free_dns_answer(&response->answers[i]);
+		if (responce->answers) {
+			for (uint16_t i = 0; i < responce->header.ancount; i++) {
+				free_dns_answer(&responce->answers[i]);
 			}
-			free(response->answers);
+			free(responce->answers);
 		}
-		if (response->authorities) {
-			for (uint16_t i = 0; i < response->header.nscount; i++) {
-				free_dns_answer(&response->authorities[i]);
+		if (responce->authorities) {
+			for (uint16_t i = 0; i < responce->header.nscount; i++) {
+				free_dns_answer(&responce->authorities[i]);
 			}
-			free(response->authorities);
+			free(responce->authorities);
 		}
-		if (response->additionals) {
-			for (uint16_t i = 0; i < response->header.arcount; i++) {
-				free_dns_answer(&response->additionals[i]);
+		if (responce->additionals) {
+			for (uint16_t i = 0; i < responce->header.arcount; i++) {
+				free_dns_answer(&responce->additionals[i]);
 			}
-			free(response->additionals);
+			free(responce->additionals);
 		}
-		free(response);
+		free(responce);
 	}
 }

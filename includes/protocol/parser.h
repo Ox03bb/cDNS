@@ -55,10 +55,11 @@ typedef struct {
     DNSAnswer *answers;
     DNSAnswer *authorities;
     DNSAnswer *additionals;
-} DNSResponse;
+} DNSResponce;
 
 int parse_dns_header(const char *buffer, DNSHeader *header);
-int parse_dns_answer(const char *buffer, DNSAnswer *answer);
+int parse_dns_answer(const char *buffer, int offset, DNSAnswer *answer);
 int parse_dns_request(const char *buffer, DNSRequest *request);
+int parse_dns_responce(const char *buffer, DNSResponce *responce);
 
 #endif // PARSER_H

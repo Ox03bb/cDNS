@@ -8,6 +8,6 @@ void free_domain_name(DomainName *dname);
 void free_dns_question(DNSQuestion *question);
 void free_dns_answer(DNSAnswer *answer);
 void free_dns_request(DNSRequest *request);
-void free_dns_response(DNSResponse *response);
+void free_dns_responce(DNSResponce *responce);
 
 #endif // FREE_H
